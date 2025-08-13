@@ -1,0 +1,259 @@
+##jsp에서 실습하기
+#스프링 boot프로젝트로 생성
+#위에서 처리한 코드는 타임리프를 이용하여 처리한 코드이지만
+타임리프를 사용하지 않을 경우 jsp사용할 경우 어떻게 처리할 것인가?
+1)타임리프 라이브러리 미선택
+2)시큐리티 라이브러리 미선택
+spring boot devtools
+lombok
+spring data jpa
+spring data jdbc
+h2 database
+spring web
+spring security : 제외
+thymeleaf : 제외
+
+#pom.xml jsp사용할 수있는 라이브러리 추가
+<dependency>
+   <groupId>org.apache.tomcat.embed</groupId>
+   <artifactId>tomcat-embed-jasper</artifactId>
+</dependency>
+
+#JDBC 연결 정보
+임베디드 모드: jdbc:h2:~/test
+메모리 모드: jdbc:h2:mem:testdb
+서버 모드: jdbc:h2:tcp://localhost/~/test
+접속에 실패했을 경우 c:\users/seoil/test.db.mv 파일을 생성(메모장)
+접속주소 : http://localhost:8888/h2-console
+
+#/src/main/webapp/index.jsp
+<%@page import="java.sql.DriverManager"%>
+<%@page import="java.sql.ResultSet"%>
+<%@page import="java.sql.Statement"%>
+<%@page import="java.sql.Connection"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<!-- 데이터베이스(h2 db) 접속코드 -->
+<%
+String jdbcUrl = "jdbc:h2:~/test"; // 또는 jdbc:h2:mem:testdb
+String jdbcUser = "sa";
+String jdbcPass = "";
+
+Connection conn = null;
+Statement stmt = null;
+ResultSet rs = null;
+
+try {
+    // JDBC 드라이버 로딩
+    Class.forName("org.h2.Driver");
+
+    // 데이터베이스 연결
+    conn = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPass);
+	out.print(conn);
+    // 쿼리 실행
+    //stmt = conn.createStatement();
+    //rs = stmt.executeQuery("SELECT * FROM your_table_name");
+
+    // 결과 출력
+    /*
+    while (rs.next()) {
+        out.println("ID: " + rs.getInt("id") + "<br>");
+        out.println("Name: " + rs.getString("name") + "<br><br>");
+    }
+	*/
+} catch (Exception e) {
+    out.println("에러 발생: " + e.getMessage());
+    e.printStackTrace();
+} finally {
+    try { if (rs != null) rs.close(); } catch (Exception e) {}
+    try { if (stmt != null) stmt.close(); } catch (Exception e) {}
+    try { if (conn != null) conn.close(); } catch (Exception e) {}
+}
+%>
+</body>
+</html>
+
+#port번호 설정
+server.port=8888
+
+#main자바파일을 열고 springboot를 실행해야함.
+
+#index.jsp파일은 접속을 확인하기 위한 파일
+#실습사항
+로그인폼을 만들고 id, password를 입력하면 
+데이터베이스의 내용과 비교한 후
+일치할 경우 로그인 성공, 실패할 경우 로그인 실패 페이지로 이동하는 코드 작성
+login.jsp(로그인폼)
+login_proc.jsp(로그인처리)
+loginSuccess.jsp(로그인성공)/loginFail.jsp(로그인실패)
+
+#데이터베이스 작성
+참고)h2 db의 경우 user테이블 사용할 수 없음(예약)
+http://localhost:8888/h2-console
+create table users(
+username varchar(10) primary key,
+password varchar(10) not null
+);
+insert into users values('user1','1234');
+SELECT * FROM USERS;
+
+gpt)login.jsp 로그인폼을 작성하고 action은 login_proc.jsp이고 input id는 username, password는 password로 폼작성
+<h2>로그인</h2>
+    <form action="login_proc.jsp" method="post">
+        <label for="username">아이디:</label>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="password">비밀번호:</label>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <input type="submit" value="로그인">
+    </form>
+#http://localhost:8888/login.jsp
+
+#login_proc.jsp
+<%@page import="java.sql.DriverManager"%>
+<%@page import="java.sql.ResultSet"%>
+<%@page import="java.sql.Statement"%>
+<%@page import="java.sql.Connection"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<%
+
+String username=request.getParameter("username");
+String password=request.getParameter("password");
+System.out.println(username +" " +password);
+String jdbcUrl = "jdbc:h2:~/test"; // 또는 jdbc:h2:mem:testdb
+String jdbcUser = "sa";
+String jdbcPass = "";
+
+Connection conn = null;
+Statement stmt = null;
+ResultSet rs = null;
+
+
+try {
+    // JDBC 드라이버 로딩
+    Class.forName("org.h2.Driver");
+
+    // 데이터베이스 연결
+    conn = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPass);
+	    
+    // 쿼리 실행
+    //쿼리 실행순서
+    /*
+    username에 대한 사용자 있는지 select문을 통해서 확인하고
+    만약 없다면 로그인 실패(사용자 없다는 메시지 전달)
+    사용자가 있을 경우 username, password같이 비교하면 됨.
+    만약 일치할 경우 로그인 성공, 실패할 경우 로그인 실패
+    */
+    stmt = conn.createStatement();
+    System.out.println("check1");
+    rs 
+    = stmt.executeQuery("SELECT * FROM users where username='"+username+"'");
+    System.out.println("check2");
+    if(!rs.next()){
+    	System.out.println("check3");
+    	response.sendRedirect("/loginFail.jsp");
+    	return;
+    }
+    
+    //username 존재한다는 의미
+    //username, password 비교
+    if(!(username.equals(rs.getString("username")) 
+    		&& username.equals(rs.getString("username")))){
+    	response.sendRedirect("/loginFail.jsp");
+    	return;
+    }
+    
+    response.sendRedirect("/loginSuccess.jsp");
+
+    
+} catch (Exception e) {
+    out.println("에러 발생: " + e.getMessage());
+    e.printStackTrace();
+} finally {
+    try { if (rs != null) rs.close(); } catch (Exception e) {}
+    try { if (stmt != null) stmt.close(); } catch (Exception e) {}
+    try { if (conn != null) conn.close(); } catch (Exception e) {}
+}
+%>
+</body>
+</html>
+
+#sql문을 처리하는 방법에 따라서 보안사항이  큰 차이점을 나타냄
+예시)
+1)사용자를 찾은 후 다시 사용자와 패스워드를 비교하는 경우(코드는 불완전하지만 논리적인 부분에서 위험성 감소)
+"SELECT * FROM users where username='"+username+"'"  
+-> 객체를 얻은 후 비교
+if(!(username.equals(rs.getString("username")) && username.equals(rs.getString("username")))){ }
+2)아이디와 패스워드를 두 개를 and 연산으로 처리하는 경우 위험성 올라감
+SELECT * FROM users where username='"+username+"' and password='"+password+"'"
+3)최신기술을 사용하여 코드를 처리하면 위험성 감소
+String sql="SELECT * FROM users where username=? and password=?";
+
+##위의 코드를 이용하여  sql inject를 할 수 있는가?
+SELECT * FROM users where username='?' and password='?'
+첫번째 ? username: aaa or 1=1 --
+password:1111
+
+SELECT * FROM users where username='aaa or 1=1 --' and password='1111'
+SELECT * FROM users where username='aaa' or 1=1 --' and password='1111'
+ username: aaa' or 1=1 --
+
+
+##mybatis에서 보안 문제점 확인
+#spring boot project 2개 생성(sec_mybatisloginxml, sec_mybatisloginjava)
+dev tools, lombok, jdbc, h2 db, spring web, mybatis 라이브러리 추가
+
+#Restapi 구현
+UserApiRestController.java
+회원가입(입력) /api/user:post
+전체출력/api/users:get
+선택출력/api/user/id:get
+--수정/api/user:put
+삭제/api/user/id:delete
+
+LoginController.java
+로그인 폼:  /login : get
+로그인 :  /login : post
+
+#DB테이블 생성 위의 테이블 사용(h2:mybatis)
+#db구현은 mybatis로 구현할 것(xml, java)
+1)xml형태 구현
+application.properties에서 mybatis설정
+#db연결설정
+spring.datasource.url=jdbc:h2:~/test	
+spring.datasource.username=sa
+spring.datasource.password=
+spring.datasource.driver-class-name=org.h2.Driver
+
+# MyBatis configuration
+mybatis.mapper-locations=classpath:mapper/**/*.xml
+mybatis.type-aliases-package=com.example.demo
+mybatis.configuration.map-underscore-to-camel-case=false
+
+
+
+
+
+
+
+
+
+
+
+
